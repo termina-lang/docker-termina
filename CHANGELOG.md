@@ -37,3 +37,10 @@ bundled Termina stack.
 - `patches/qemu-leon3-uart-irq.patch`: portable unified diff against
   qemu-9.2.4 that changes `LEON3_UART_IRQ` from 3 to 2 in
   `hw/sparc/leon3.c`. Applies with `patch -p1`.
+- GitHub Actions workflow `.github/workflows/build-and-push.yml` that
+  builds the image on every `v*.*.*` tag push and publishes to
+  `ghcr.io/termina-lang/docker-termina`. Image tags produced per release:
+  `vX.Y.Z` (immutable, equals the git tag), `X.Y` (floating on the latest
+  patch of the minor series), and `latest` (floating on the latest
+  non-prerelease). Pre-release tags (`-rc*`) skip the `latest` alias.
+  The workflow also supports manual triggering via `workflow_dispatch`.

@@ -1,0 +1,58 @@
+name: Build and publish docker-termina image
+
+# Triggers:
+#   - push of a git tag matching v*.*.*  → builds and publishes a release.
+#   - workflow_dispatch (manual)         → builds and publishes from main, useful
+#                                          for forcing a rebuild without a new tag.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generates the set of image tags from the git ref:
+      #   - vX.Y.Z          (immutable, equals the git tag verbatim)
+      #   - X.Y             (floating: tracks the latest patch in the minor series)
+      #   - latest          (floating: tracks the latest non-prerelease)
+      # Pre-release tags (e.g. v0.4.0-rc1) skip the "latest" floating alias.
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/termina-lang/docker-termina
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ !contains(github.ref, '-') }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
