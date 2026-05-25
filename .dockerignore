@@ -1,0 +1,12 @@
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+*~
+README.md
+CHANGELOG.md
+LICENSE
