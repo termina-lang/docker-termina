@@ -6,14 +6,46 @@ cross-toolchains.
 This repository builds a ready-to-use container image bundling everything
 needed to write, transpile, and run [Termina](https://github.com/termina-lang/termina)
 programs without installing anything on the host beyond Docker itself.
-It is intended to be the easiest on-ramp for students, researchers, and
-external contributors.
+It is intended to be the easiest on-ramp for researchers, collaborators,
+external contributors, and students working on or with Termina.
 
 ## Status
 
-**Work in progress.** The repository scaffold is in place; the `Dockerfile`
-and the GitHub Actions workflow that publishes images to GHCR will land
-in subsequent commits. See [`CHANGELOG.md`](./CHANGELOG.md) for the history.
+The `Dockerfile` is in place and builds a functional image locally. The
+GitHub Actions workflow that publishes images to GHCR will land in a
+follow-up commit; the first tagged release (`v0.3.0`) will be cut once
+the CI pipeline is wired and the build is verified end-to-end. See
+[`CHANGELOG.md`](./CHANGELOG.md) for the history.
+
+## Building locally
+
+```sh
+docker build --platform linux/amd64 -t docker-termina:dev .
+```
+
+First build takes ~25-30 minutes on a fresh machine (Haskell toolchain
+download, transpiler compilation, QEMU compilation). Subsequent builds
+that touch only the runtime stage take a couple of minutes.
+
+## Using as a Dev Container
+
+In a Termina project, add `.devcontainer/devcontainer.json`:
+
+```jsonc
+{
+  "name": "Termina dev container",
+  "image": "ghcr.io/termina-lang/docker-termina:v0.3.0",
+  "customizations": {
+    "vscode": {
+      "extensions": ["termina-lang.termina"]
+    }
+  },
+  "remoteUser": "vscode"
+}
+```
+
+Open the project in VS Code Desktop with the Dev Containers extension
+installed and choose *Reopen in Container*.
 
 ## What the image will bundle
 
