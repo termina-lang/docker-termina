@@ -16,15 +16,17 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-26
+
+Initial tagged release of the docker-termina image.
+
 ### Added
 
-- Initial repository scaffold (README, LICENSE, VERSION, CHANGELOG, ignore
-  files). The first tagged release (`v0.3.0`) will be cut once the image
-  builds end-to-end on CI.
+- Repository scaffold (README, LICENSE, VERSION, CHANGELOG, ignore files).
 - `Dockerfile` building a three-stage image:
   - Stage 1 compiles the Termina transpiler from source at the pinned tag
-    `v0.3.0` using the official `haskell:9.6.6-bookworm` image.
-  - Stage 2 builds upstream QEMU 9.2.4 from source with a single-line
+    `v0.3.2` using the official `haskell:9.6.7-bullseye` image.
+  - Stage 2 builds upstream QEMU `9.2.4` from source with a single-line
     patch (`patches/qemu-leon3-uart-irq.patch`) that aligns the LEON3
     UART interrupt with the Gaisler Nexys A7 reference design.
   - Stage 3 (the published image) bundles Ubuntu 24.04, the Gaisler RCC
