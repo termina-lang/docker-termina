@@ -16,6 +16,15 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-26
+
+### Changed
+
+- Bundle Termina transpiler `v0.3.3` (was `v0.3.2`), which fixes an internal
+  error for resources reached only through an unprotected resource. The OSAL
+  remains at `v0.3.1`.
+
+
 ## [0.3.0] - 2026-05-26
 
 Initial tagged release of the docker-termina image.
