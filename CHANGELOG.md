@@ -16,6 +16,17 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-27
+
+### Added
+
+- `gdb` and `gdb-multiarch`, for debugging native and cross-compiled programs.
+
+### Changed
+
+- Bundle Termina transpiler `v0.3.4` (was `v0.3.3`). The OSAL remains at `v0.3.1`.
+
+
 ## [0.3.1] - 2026-05-26
 
 ### Changed
