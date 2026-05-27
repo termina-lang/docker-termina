@@ -25,7 +25,7 @@
 ARG UBUNTU_VERSION=24.04
 ARG HASKELL_IMAGE=haskell:9.6.7-bullseye
 
-ARG TERMINA_VERSION=0.3.3
+ARG TERMINA_VERSION=0.3.4
 ARG OSAL_VERSION=0.3.1
 
 ARG RCC_VERSION=1.3.2
@@ -144,6 +144,8 @@ RUN apt-get update \
         ca-certificates \
         curl \
         gcc-arm-none-eabi \
+        gdb \
+        gdb-multiarch \
         git \
         less \
         libglib2.0-0 \
