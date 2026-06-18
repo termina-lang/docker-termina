@@ -1,5 +1,7 @@
 # docker-termina
 
+[![Build image](https://github.com/termina-lang/docker-termina/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/termina-lang/docker-termina/actions/workflows/build-and-push.yml)
+
 Docker image for Termina development: transpiler, OSAL, and embedded
 cross-toolchains.
 
