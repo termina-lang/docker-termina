@@ -16,6 +16,16 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-18
+
+### Changed
+
+- Bundle Termina transpiler `v0.4.0` (was `v0.3.4`) and Termina OSAL `v0.4.0`
+  (was `v0.3.1`), which add the `f32`/`f64` floating-point types and remove
+  variable-length arrays. The image minor is bumped to `0.4` to track the
+  `MAJOR.MINOR` of the bundled stack.
+
+
 ## [0.3.2] - 2026-05-27
 
 ### Added
