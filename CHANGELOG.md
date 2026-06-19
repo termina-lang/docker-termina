@@ -16,6 +16,15 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-19
+
+### Changed
+
+- Bundle Termina transpiler `v0.5.0` and Termina OSAL `v0.5.0`, which make the
+  system port's `print`/`read` buffers fixed-size and configurable. The image
+  minor is bumped to `0.5` to track the `MAJOR.MINOR` of the bundled stack.
+
+
 ## [0.4.0] - 2026-06-18
 
 ### Changed
