@@ -2,17 +2,19 @@
 #
 # docker-termina image build.
 #
-# Layered as three stages: a Haskell builder that compiles the Termina
-# transpiler from source, a Ubuntu builder that compiles a patched QEMU,
-# and a Ubuntu runtime that bundles toolchains, OSAL, transpiler binary,
-# and patched QEMU. The two builder stages exist only to keep their
-# heavyweight dependencies (GHC, cabal store, QEMU build deps, ~5 GB)
-# out of the published image.
+# Layered as two stages: a Haskell builder that compiles the Termina
+# transpiler from source, and a Ubuntu runtime that bundles toolchains,
+# OSAL and transpiler binary. The builder stage exists only to keep its
+# heavyweight dependencies (GHC, stack store, ~5 GB) out of the published
+# image.
+#
+# Emulators, and anything else that stands in for a board, run on the
+# host. The debuggers stay here, because an editor attached to the
+# container runs them inside it.
 #
 # All inputs are pinned: explicit versions for the transpiler and the
-# OSAL via git tag, SHA256 hashes for the two external tarballs
-# (Gaisler RCC and upstream QEMU). The Gaisler tarball is mirrored on
-# this repository's "toolchains" release; QEMU is fetched from upstream.
+# OSAL via git tag, a SHA256 hash for the Gaisler RCC tarball, which is
+# mirrored on this repository's "toolchains" release.
 #
 # Target platform is linux/amd64 only. The Gaisler RCC binaries are
 # distributed exclusively for x86_64 Linux; emulation under Rosetta
@@ -31,9 +33,6 @@ ARG OSAL_VERSION=0.5.0
 ARG RCC_VERSION=1.3.2
 ARG RCC_GCC=10.5.0
 ARG RCC_SHA256=f1ec95244898b015e153acd881c2489a0f53b7451170159ab49e5ac7d1a9d25c
-
-ARG QEMU_VERSION=9.2.4
-ARG QEMU_SHA256=f3cc1c4eabfdb288218ac3e33763dbe9e276d8bc890b867a2335d58de2ddd39a
 
 
 # =============================================================================
@@ -61,59 +60,7 @@ RUN git clone --depth 1 --branch "v${TERMINA_VERSION}" \
 
 
 # =============================================================================
-# Stage 2: QEMU builder (patched)
-#
-# Builds upstream QEMU from source with a single-line patch that fixes the
-# LEON3 UART interrupt number to match the Gaisler Nexys A7 reference SoC.
-# Only the sparc-softmmu target is built to keep the build fast.
-# =============================================================================
-FROM --platform=linux/amd64 ubuntu:${UBUNTU_VERSION} AS qemu-builder
-
-ARG QEMU_VERSION
-ARG QEMU_SHA256
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update \
- && apt-get install --no-install-recommends -y \
-        build-essential \
-        ca-certificates \
-        curl \
-        libfdt-dev \
-        libglib2.0-dev \
-        libpixman-1-dev \
-        meson \
-        ninja-build \
-        pkg-config \
-        python3 \
-        python3-venv \
-        xz-utils \
-        zlib1g-dev \
- && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
-
-RUN curl -fSL -o qemu.tar.xz "https://download.qemu.org/qemu-${QEMU_VERSION}.tar.xz" \
- && echo "${QEMU_SHA256}  qemu.tar.xz" | sha256sum -c - \
- && tar -xJf qemu.tar.xz \
- && rm qemu.tar.xz
-
-COPY patches/qemu-leon3-uart-irq.patch /tmp/qemu-leon3-uart-irq.patch
-
-WORKDIR /build/qemu-${QEMU_VERSION}
-
-RUN patch -p1 < /tmp/qemu-leon3-uart-irq.patch
-
-RUN ./configure \
-        --target-list=sparc-softmmu \
-        --prefix=/usr/local \
-        --disable-werror \
- && make -j"$(nproc)" \
- && make DESTDIR=/install install
-
-
-# =============================================================================
-# Stage 3: Runtime image (the one users pull)
+# Stage 2: Runtime image (the one users pull)
 #
 # Layers ordered from least frequently to most frequently changing, so
 # users updating the image only pay for the delta of the top layers.
@@ -134,7 +81,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-# --- Base system tooling + QEMU runtime libraries + ARM cross-toolchain ------
+# --- Base system tooling + ARM cross-toolchain -------------------------------
 #
 # Kept in a single apt invocation so the layer is one cohesive unit:
 # inspectable and invalidated as a whole when the package list changes.
@@ -148,8 +95,6 @@ RUN apt-get update \
         gdb-multiarch \
         git \
         less \
-        libglib2.0-0 \
-        libpixman-1-0 \
         make \
         nano \
         python3 \
@@ -172,14 +117,6 @@ RUN set -eux; \
     tar -xJf /tmp/rcc.txz -C /opt/; \
     ln -s "/opt/rcc-${RCC_VERSION}-gcc" /opt/rcc; \
     rm /tmp/rcc.txz
-
-# --- Patched QEMU from the qemu-builder stage --------------------------------
-#
-# Copies the install tree produced by `make DESTDIR=/install install`.
-# Only sparc-softmmu was built; only the corresponding qemu-system-sparc
-# binary and its shared resources land here.
-COPY --from=qemu-builder /install/usr/local /usr/local
-RUN ldconfig
 
 # --- Dev Containers user -----------------------------------------------------
 #

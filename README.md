@@ -25,9 +25,9 @@ the CI pipeline is wired and the build is verified end-to-end. See
 docker build --platform linux/amd64 -t docker-termina:dev .
 ```
 
-First build takes ~25-30 minutes on a fresh machine (Haskell toolchain
-download, transpiler compilation, QEMU compilation). Subsequent builds
-that touch only the runtime stage take a couple of minutes.
+First build takes ~20-25 minutes on a fresh machine (Haskell toolchain
+download, transpiler compilation). Subsequent builds that touch only the
+runtime stage take a couple of minutes.
 
 ## Using as a Dev Container
 
@@ -56,7 +56,6 @@ installed and choose *Reopen in Container*.
 - Cross-toolchains for embedded targets: Gaisler `sparc-rtems5-gcc` for the
   LEON/RTEMS path, `arm-none-eabi-gcc` for STM32 and similar bare-metal ARM
   targets.
-- `qemu-system-sparc` for running RTEMS images without hardware.
 - The Termina VS Code extension preinstalled, so Dev Containers users get
   syntax support and the language server out of the box.
 

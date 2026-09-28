@@ -16,6 +16,12 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING**: `qemu-system-sparc` and the stage that built it. Emulators run
+  on the host; `gdb` and `gdb-multiarch` stay in the image, where an editor
+  attached to the container runs them.
+
 ## [0.5.0] - 2026-06-19
 
 ### Changed
