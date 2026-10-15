@@ -16,6 +16,36 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+### Added
+
+- RTEMS 6.2 for ARM, for the `rtems6-zynq7000-pynqz2` platform: the
+  `arm-rtems6` toolchain of the RTEMS Source Builder and the
+  `xilinx_zynq_pynq` BSP, with the kernel console on UART 0
+  (`rtems/config.ini`). The kernel is built in `/opt/rtems/6/src`, which keeps
+  the sources of cpukit and of the Zynq BSP for GDB.
+- The GDB support of RTEMS 6 for `gdb-multiarch`, which runs the scripts of the
+  ELF files of the projects under `/workspaces`.
+- MAST `1.6.0.1` (`mast_analysis`), for `termina sched`.
+- cppcheck `2.21.1` with its MISRA addon, built from its tag. The cppcheck of
+  Ubuntu 24.04 reports false `duplicateCondition` findings.
+- `lcov`.
+- The build arguments `TERMINA_REF` and `OSAL_REF`, which build the image from
+  a branch instead of the release tag.
+
+### Changed
+
+- `arm-none-eabi-gcc` comes from the Arm GNU Toolchain `13.3.rel1`, the release
+  that STM32CubeCLT ships, instead of the `gcc-arm-none-eabi` package of
+  Ubuntu. The package does not include newlib, and no project for
+  `freertos10-stm32l432-nucleol432kc` compiled in the image.
+- The cross-toolchains keep only the multilibs of the image platforms
+  (`thumb/armv7-a+simd/hard` for RTEMS 6, `soft/leon3` for RCC and
+  `thumb/v7e-m+fp/hard` for Arm), without C++, Fortran, LTO, their own GDB or
+  their documentation. RCC keeps the `leon3` and `leon3_sf` BSPs and the
+  sources of RTEMS 5 for LEON3. The image goes from 7.86 GB to 1.65 GB.
+- `build-essential` is replaced by `gcc` and `libc6-dev`, and `vim` by
+  `vim-tiny`.
+
 ### Removed
 
 - **BREAKING**: `qemu-system-sparc` and the stage that built it. Emulators run
