@@ -16,6 +16,8 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-15
+
 ### Added
 
 - RTEMS 6.2 for ARM, for the `rtems6-zynq7000-pynqz2` platform: the
@@ -34,6 +36,11 @@ bundled Termina stack.
 
 ### Changed
 
+- Bundle Termina transpiler `v0.6.0` and Termina OSAL `v0.6.0`, which add
+  calls to C functions, run-time checks of arithmetic, the value analysis and
+  the `rtems6-zynq7000-pynqz2` platform, and move the generated C to the
+  `termina` namespace. The image minor is bumped to `0.6` to track the
+  `MAJOR.MINOR` of the bundled stack.
 - `arm-none-eabi-gcc` comes from the Arm GNU Toolchain `13.3.rel1`, the release
   that STM32CubeCLT ships, instead of the `gcc-arm-none-eabi` package of
   Ubuntu. The package does not include newlib, and no project for
