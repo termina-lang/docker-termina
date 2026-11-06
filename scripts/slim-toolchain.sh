@@ -18,6 +18,12 @@ gcc="${prefix}/bin/${target}-gcc"
 gcclib=$(dirname "$("${gcc}" -print-libgcc-file-name)")
 tlib="${prefix}/${target}/lib"
 
+# A KEEP that names no multilib would remove all of them
+if ! "${gcc}" -print-multi-lib | cut -d';' -f1 | grep -qxF "${keep}"; then
+    echo "slim-toolchain.sh: ${target} has no multilib ${keep}" >&2
+    exit 1
+fi
+
 # Files of every other multilib; a directory may also hold the kept one below
 "${gcc}" -print-multi-lib | cut -d';' -f1 | while read -r dir; do
     if [ "${dir}" != "${keep}" ]; then

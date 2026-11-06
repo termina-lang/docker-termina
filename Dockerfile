@@ -27,8 +27,11 @@
 ARG UBUNTU_VERSION=24.04
 ARG HASKELL_IMAGE=haskell:9.6.7-bullseye
 
-ARG TERMINA_VERSION=0.6.0
-ARG OSAL_VERSION=0.6.0
+# MAJOR.MINOR of the transpiler and of the OSAL, which the image exports as
+# TERMINA_CONTAINER
+ARG TERMINA_SERIES=0.7
+ARG TERMINA_VERSION=${TERMINA_SERIES}.0
+ARG OSAL_VERSION=${TERMINA_SERIES}.0
 # Branch or tag to build from; a test image may point them at main
 ARG TERMINA_REF=v${TERMINA_VERSION}
 ARG OSAL_REF=v${OSAL_VERSION}
@@ -78,7 +81,7 @@ RUN git clone --depth 1 --branch "${TERMINA_REF}" \
 
 
 # =============================================================================
-# Stage 2: RTEMS 6 for ARM
+# Stage 2: RTEMS 6 for ARM and RISC-V
 #
 # The tools come from the RTEMS Source Builder of the release, the board
 # support packages from the kernel of the release with config.ini.
@@ -122,6 +125,11 @@ RUN set -eux; \
     ../source-builder/sb-set-builder --prefix=/opt/rtems/6 \
         --jobs="$(nproc)" 6/rtems-arm
 
+RUN set -eux; \
+    cd "rtems-source-builder-${RTEMS_VERSION}/rtems"; \
+    ../source-builder/sb-set-builder --prefix=/opt/rtems/6 \
+        --jobs="$(nproc)" 6/rtems-riscv
+
 COPY rtems/config.ini /build/config.ini
 COPY scripts/ /build/scripts/
 
@@ -144,8 +152,11 @@ RUN set -eux; \
     cp -r /opt/rtems/6/share/gdb/python/rtems /build/gdb-python/; \
     sh /build/scripts/slim-toolchain.sh /opt/rtems/6 arm-rtems6 \
         thumb/armv7-a+simd/hard; \
+    sh /build/scripts/slim-toolchain.sh /opt/rtems/6 riscv-rtems6 \
+        rv32im/ilp32; \
     sh /build/scripts/slim-rtems-src.sh \
-        "/opt/rtems/6/src/rtems-${RTEMS_VERSION}" arm xilinx-zynq
+        "/opt/rtems/6/src/rtems-${RTEMS_VERSION}" \
+        arm:xilinx-zynq riscv:riscv riscv:noel
 
 
 # =============================================================================
@@ -187,6 +198,7 @@ RUN set -eux; \
 # =============================================================================
 FROM --platform=linux/amd64 ubuntu:${UBUNTU_VERSION}
 
+ARG TERMINA_SERIES
 ARG OSAL_REF
 ARG RCC_VERSION
 ARG RCC_GCC
@@ -209,11 +221,25 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # --- Base system tooling -----------------------------------------------------
 #
-# Kept in a single apt invocation so the layer is one cohesive unit:
-# inspectable and invalidated as a whole when the package list changes.
-RUN apt-get update \
- && apt-get install --no-install-recommends -y \
-        ca-certificates \
+# Kept in a single layer so it is inspectable and invalidated as a whole when
+# the package list changes. git comes from the git-core PPA: the one of the
+# distribution cannot read a repository created on the host with reftable.
+# The key of the PPA and the host keys of github.com and gitlab.com are
+# pinned in etc/; ssh needs the latter for dependencies and commit signing.
+COPY etc/git-core-ppa.asc /etc/apt/keyrings/git-core-ppa.asc
+COPY etc/ssh_known_hosts /etc/ssh/ssh_known_hosts
+RUN set -eux; \
+    apt-get update; \
+    apt-get install --no-install-recommends -y ca-certificates; \
+    printf '%s\n' \
+        'Types: deb' \
+        'URIs: https://ppa.launchpadcontent.net/git-core/ppa/ubuntu' \
+        "Suites: $(. /etc/os-release && echo "${VERSION_CODENAME}")" \
+        'Components: main' \
+        'Signed-By: /etc/apt/keyrings/git-core-ppa.asc' \
+        > /etc/apt/sources.list.d/git-core-ppa.sources; \
+    apt-get update; \
+    apt-get install --no-install-recommends -y \
         curl \
         gcc \
         gdb \
@@ -224,11 +250,12 @@ RUN apt-get update \
         libc6-dev \
         make \
         nano \
+        openssh-client \
         python3 \
         sudo \
         vim-tiny \
-        xz-utils \
- && rm -rf /var/lib/apt/lists/*
+        xz-utils; \
+    rm -rf /var/lib/apt/lists/*
 
 COPY scripts/ /tmp/scripts/
 
@@ -315,21 +342,28 @@ RUN userdel --remove ubuntu 2>/dev/null || true \
 
 # --- Termina OSAL sources ----------------------------------------------------
 #
-# Source tree consumed at build time by user applications. The Makefile of
-# each application sets TERMINA_OSAL_DIR and includes the platform.mk that
-# corresponds to its target.
+# Source tree consumed at build time by user applications. The generated
+# Makefile takes it from TERMINA_OSAL_DIR, or else from /opt/termina/osal,
+# the same folder as in the native install. /opt/termina-osal, where the
+# images up to 0.6 had it, stays as a link.
 RUN git clone --depth 1 --branch "${OSAL_REF}" \
-        https://github.com/termina-lang/termina-osal.git /opt/termina-osal \
- && rm -rf /opt/termina-osal/.git
+        https://github.com/termina-lang/termina-osal.git /opt/termina/osal \
+ && rm -rf /opt/termina/osal/.git \
+ && ln -s /opt/termina/osal /opt/termina-osal
 
 # --- Termina transpiler binary -----------------------------------------------
 #
 # Last substantial layer so that transpiler bumps only invalidate this one.
-COPY --from=termina-builder /out/termina /usr/local/bin/termina
+COPY --from=termina-builder /out/termina /opt/termina/bin/termina
 
 # --- Environment -------------------------------------------------------------
-ENV TERMINA_OSAL_DIR=/opt/termina-osal \
-    PATH=/opt/rcc/bin:/opt/rtems/6/bin:/opt/arm-none-eabi/bin:/opt/cppcheck/bin:${PATH}
+#
+# TERMINA_CONTAINER tells the transpiler that it runs in this image: it then
+# reaches the GDB servers at host.docker.internal, and its messages about git
+# suggest what works from the container.
+ENV TERMINA_OSAL_DIR=/opt/termina/osal \
+    TERMINA_CONTAINER=${TERMINA_SERIES} \
+    PATH=/opt/termina/bin:/opt/rcc/bin:/opt/rtems/6/bin:/opt/arm-none-eabi/bin:/opt/cppcheck/bin:${PATH}
 
 USER vscode
 WORKDIR /home/vscode

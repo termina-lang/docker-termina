@@ -18,11 +18,18 @@ use it from the command line and as a VS Code Dev Container. The
 | `posix-gcc` | `gcc` of Ubuntu 24.04 |
 | `rtems5-leon3sf-nexysa7` | Gaisler RCC 1.3.2 (`sparc-gaisler-rtems5-gcc`), in `/opt/rcc` |
 | `rtems6-zynq7000-pynqz2` | RTEMS 6.2 (`arm-rtems6-gcc` and the `xilinx_zynq_pynq` BSP), in `/opt/rtems/6` |
+| `rtems6-rv32im-spike` | RTEMS 6.2 (`riscv-rtems6-gcc` and the `rv32im` BSP), in `/opt/rtems/6` |
+| `rtems6-noel32im-artya7` | RTEMS 6.2 (`riscv-rtems6-gcc` and the `noel32im` BSP), in `/opt/rtems/6` |
 | `freertos10-stm32l432-nucleol432kc` | Arm GNU Toolchain 13.3.rel1 (`arm-none-eabi-gcc`), in `/opt/arm-none-eabi` |
 
 Along with the toolchains, the image includes:
 
-- `termina`, and the OSAL in `/opt/termina-osal` (`TERMINA_OSAL_DIR`).
+- `termina` in `/opt/termina/bin`, and the OSAL in `/opt/termina/osal`
+  (`TERMINA_OSAL_DIR`), the same layout as the native install.
+  `/opt/termina-osal` is a link to the OSAL.
+- git from the [git-core PPA](https://launchpad.net/~git-core/+archive/ubuntu/ppa),
+  and `ssh` with the host keys of github.com and gitlab.com, for the
+  dependencies of a project and for signing commits.
 - `gdb`, and `gdb-multiarch` with the GDB support of RTEMS 6.
 - cppcheck 2.21.1 with the MISRA addon.
 - MAST (`mast_analysis`), for `termina sched`.
@@ -58,13 +65,15 @@ docker build --platform linux/amd64 -t docker-termina:dev .
 
 The build arguments `TERMINA_REF` and `OSAL_REF` select the branch or tag of
 the transpiler and of the OSAL. They default to the tags of `TERMINA_VERSION`
-and `OSAL_VERSION`.
+and `OSAL_VERSION`, which follow `TERMINA_SERIES`.
 
 ## Layout
 
 - `Dockerfile`: the builder stages (transpiler, RTEMS 6, cppcheck) and the
   runtime image.
 - `rtems/config.ini`: the BSP configuration of RTEMS 6.
+- `etc/`: the key of the git-core PPA and the SSH host keys, checked against
+  the ones that Launchpad, GitHub and GitLab publish.
 - `scripts/`: the scripts that remove from the toolchains and the RTEMS
   sources what the platforms do not use.
 

@@ -16,6 +16,32 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+### Added
+
+- RTEMS 6.2 for RISC-V, for the `rtems6-rv32im-spike` and
+  `rtems6-noel32im-artya7` platforms: the `riscv-rtems6` toolchain of the RTEMS
+  Source Builder, with the `rv32im/ilp32` multilib, and the `rv32im` and
+  `noel32im` BSPs. The sources of their BSP families stay in
+  `/opt/rtems/6/src` for GDB. Spike, and the OpenOCD that serves GDB for
+  it, run on the host, like the other emulators and GDB servers.
+- `openssh-client` and the host keys of github.com and gitlab.com in
+  `/etc/ssh/ssh_known_hosts`, so that the package manager reaches private
+  dependencies over SSH and commits can be signed with an SSH key.
+- `TERMINA_CONTAINER`, set to the `MAJOR.MINOR` of the image, which tells the
+  transpiler that it runs in the container.
+
+### Changed
+
+- Bundle Termina transpiler `v0.7.0` and Termina OSAL `v0.7.0`, which add the
+  package manager, application tests and the RISC-V platforms. The image
+  minor is bumped to `0.7`.
+- `termina` moves to `/opt/termina/bin` and the OSAL to `/opt/termina/osal`,
+  the layout of the native install and the default of the generated
+  Makefile. `TERMINA_OSAL_DIR` points there, and `/opt/termina-osal` stays as
+  a link.
+- git comes from the git-core PPA (`2.56.0`) instead of Ubuntu (`2.43`), which
+  cannot read a repository created on the host with the reftable format.
+
 ## [0.6.0] - 2026-10-15
 
 ### Added

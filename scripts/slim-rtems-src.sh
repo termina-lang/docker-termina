@@ -1,16 +1,16 @@
 #!/bin/sh
 #
-# Keeps of an RTEMS source tree what the debug information of the BSP points
-# to: cpukit and the sources of ARCH and of the BSP family FAMILY. GDB finds
-# them because the tree stays at the path where the BSP was built.
+# Keeps of an RTEMS source tree what the debug information of the BSPs points
+# to: cpukit and the sources of each ARCH and of its BSP family FAMILY. GDB
+# finds them because the tree stays at the path where the BSPs were built.
 #
-# Usage: slim-rtems-src.sh DIR ARCH FAMILY
+# Usage: slim-rtems-src.sh DIR ARCH:FAMILY...
 
 set -eu
 
 dir=$1
-arch=$2
-family=$3
+shift
+pairs=$*
 
 cd "${dir}"
 rm -rf testsuites doc spec autom4te.cache
@@ -21,24 +21,49 @@ if [ -d build ]; then
     find build -type f -delete
 fi
 
+# Whether NAME is the architecture of one of the pairs
+is_arch() {
+    for p in ${pairs}; do
+        if [ "${p%%:*}" = "$1" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Whether NAME is one of the families of ARCH
+is_family() {
+    for p in ${pairs}; do
+        if [ "${p}" = "$1:$2" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 for d in bsps c/src/lib/libbsp c/src/lib/libcpu cpukit/score/cpu; do
     if [ -d "${d}" ]; then
         for a in "${d}"/*/; do
-            case $(basename "${a}") in
-                "${arch}"|shared|include|no_cpu) ;;
-                *) rm -rf "${a}" ;;
+            name=$(basename "${a}")
+            case ${name} in
+                shared|include|no_cpu) ;;
+                *) is_arch "${name}" || rm -rf "${a}" ;;
             esac
         done
     fi
 done
 
-for d in bsps/"${arch}" c/src/lib/libbsp/"${arch}"; do
-    if [ -d "${d}" ]; then
-        for f in "${d}"/*/; do
-            case $(basename "${f}") in
-                "${family}"|shared|include) ;;
-                *) rm -rf "${f}" ;;
-            esac
-        done
-    fi
+for p in ${pairs}; do
+    arch=${p%%:*}
+    for d in bsps/"${arch}" c/src/lib/libbsp/"${arch}"; do
+        if [ -d "${d}" ]; then
+            for f in "${d}"/*/; do
+                name=$(basename "${f}")
+                case ${name} in
+                    shared|include) ;;
+                    *) is_family "${arch}" "${name}" || rm -rf "${f}" ;;
+                esac
+            done
+        fi
+    done
 done
