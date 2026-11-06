@@ -16,6 +16,8 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Added
 
 - RTEMS 6.2 for RISC-V, for the `rtems6-rv32im-spike` and
