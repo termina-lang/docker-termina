@@ -1,39 +1,45 @@
 #!/bin/sh
 #
 # Removes from a GCC cross-toolchain what the platforms of the image do not
-# use: the multilibs other than KEEP, C++, Fortran, LTO, the debugger of the
-# toolchain (the image debugs with gdb-multiarch) and the documentation. The
-# host executables are stripped; the target libraries keep their debug
-# information.
+# use: the multilibs other than those in KEEP, C++, Fortran, LTO, the debugger
+# of the toolchain (the image debugs with gdb-multiarch) and the
+# documentation. The host executables are stripped; the target libraries keep
+# their debug information.
 #
-# Usage: slim-toolchain.sh PREFIX TARGET KEEP
+# Usage: slim-toolchain.sh PREFIX TARGET KEEP...
 
 set -eu
 
 prefix=$1
 target=$2
-keep=$3
+shift 2
+keeps="$*"
 
 gcc="${prefix}/bin/${target}-gcc"
 gcclib=$(dirname "$("${gcc}" -print-libgcc-file-name)")
 tlib="${prefix}/${target}/lib"
 
 # A KEEP that names no multilib would remove all of them
-if ! "${gcc}" -print-multi-lib | cut -d';' -f1 | grep -qxF "${keep}"; then
-    echo "slim-toolchain.sh: ${target} has no multilib ${keep}" >&2
-    exit 1
-fi
-
-# Files of every other multilib; a directory may also hold the kept one below
-"${gcc}" -print-multi-lib | cut -d';' -f1 | while read -r dir; do
-    if [ "${dir}" != "${keep}" ]; then
-        for base in "${gcclib}" "${tlib}"; do
-            if [ -d "${base}/${dir}" ]; then
-                find "${base}/${dir}" -maxdepth 1 -type f \
-                    \( -name '*.a' -o -name '*.o' \) -delete
-            fi
-        done
+for keep in ${keeps}; do
+    if ! "${gcc}" -print-multi-lib | cut -d';' -f1 | grep -qxF "${keep}"; then
+        echo "slim-toolchain.sh: ${target} has no multilib ${keep}" >&2
+        exit 1
     fi
+done
+
+# Files of every other multilib; a directory may also hold a kept one below
+"${gcc}" -print-multi-lib | cut -d';' -f1 | while read -r dir; do
+    case " ${keeps} " in
+        *" ${dir} "*) ;;
+        *)
+            for base in "${gcclib}" "${tlib}"; do
+                if [ -d "${base}/${dir}" ]; then
+                    find "${base}/${dir}" -maxdepth 1 -type f \
+                        \( -name '*.a' -o -name '*.o' \) -delete
+                fi
+            done
+            ;;
+    esac
 done
 
 find "${gcclib}" "${tlib}" \( -name 'libstdc++*' -o -name 'libsupc++*' \

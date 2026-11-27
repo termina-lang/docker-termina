@@ -19,7 +19,7 @@ use it from the command line and as a VS Code Dev Container. The
 | `rtems5-leon3sf-nexysa7` | Gaisler RCC 1.3.2 (`sparc-gaisler-rtems5-gcc`), in `/opt/rcc` |
 | `rtems6-zynq7000-pynqz2` | RTEMS 6.2 (`arm-rtems6-gcc` and the `xilinx_zynq_pynq` BSP), in `/opt/rtems/6` |
 | `rtems6-rv32im-spike` | RTEMS 6.2 (`riscv-rtems6-gcc` and the `rv32im` BSP), in `/opt/rtems/6` |
-| `rtems6-noel32im-artya7` | RTEMS 6.2 (`riscv-rtems6-gcc` and the `noel32im` BSP), in `/opt/rtems/6` |
+| `rtems6-noel32imafd-artya7` | RTEMS 6.2 (`riscv-rtems6-gcc` and the `noel32imafd` BSP), in `/opt/rtems/6` |
 | `freertos10-stm32l432-nucleol432kc` | Arm GNU Toolchain 13.3.rel1 (`arm-none-eabi-gcc`), in `/opt/arm-none-eabi` |
 
 Along with the toolchains, the image includes:
@@ -31,9 +31,11 @@ Along with the toolchains, the image includes:
   and `ssh` with the host keys of github.com and gitlab.com, for the
   dependencies of a project and for signing commits.
 - `gdb`, and `gdb-multiarch` with the GDB support of RTEMS 6.
-- cppcheck 2.21.1 with the MISRA addon.
+- cppcheck 2.22.0 with the MISRA addon.
 - MAST (`mast_analysis`), for `termina sched`.
-- `lcov`.
+- Doxygen 1.18.0 and Graphviz 16.1.0, for `termina deliver --docs`. Graphviz
+  is reduced to `dot` with the plugins that lay out a graph, write it as SVG
+  and measure its labels with the DejaVu fonts.
 
 ## Debugging on a board
 
@@ -69,8 +71,8 @@ and `OSAL_VERSION`, which follow `TERMINA_SERIES`.
 
 ## Layout
 
-- `Dockerfile`: the builder stages (transpiler, RTEMS 6, cppcheck) and the
-  runtime image.
+- `Dockerfile`: the builder stages (transpiler, RTEMS 6, cppcheck, Graphviz,
+  Doxygen) and the runtime image.
 - `rtems/config.ini`: the BSP configuration of RTEMS 6.
 - `etc/`: the key of the git-core PPA and the SSH host keys, checked against
   the ones that Launchpad, GitHub and GitLab publish.

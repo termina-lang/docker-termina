@@ -16,6 +16,26 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+### Added
+
+- Doxygen 1.18.0, built from its sources without libclang, and Graphviz
+  16.1.0, from the packages of its release reduced to `dot`, the plugins
+  that write SVG and the one that measures the labels with the DejaVu fonts,
+  for `termina deliver --docs`.
+
+### Changed
+
+- The platform `rtems6-noel32imafd-artya7`, formerly `rtems6-noel32im-artya7`:
+  the `noel32imafd` BSP, and the `rv32imafd/ilp32d` multilib of
+  `riscv-rtems6` besides `rv32im/ilp32`.
+- cppcheck 2.22.0, formerly 2.21.1.
+- `TERMINA_SERIES` 0.8.
+
+### Removed
+
+- `lcov`: the coverage report of the transpiler is its own, and the `.info`
+  file it writes does not need it.
+
 ## [0.7.0] - 2026-11-06
 
 ### Added

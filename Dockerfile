@@ -29,7 +29,7 @@ ARG HASKELL_IMAGE=haskell:9.6.7-bullseye
 
 # MAJOR.MINOR of the transpiler and of the OSAL, which the image exports as
 # TERMINA_CONTAINER
-ARG TERMINA_SERIES=0.7
+ARG TERMINA_SERIES=0.8
 ARG TERMINA_VERSION=${TERMINA_SERIES}.0
 ARG OSAL_VERSION=${TERMINA_SERIES}.0
 # Branch or tag to build from; a test image may point them at main
@@ -53,7 +53,15 @@ ARG MAST_VERSION=1-6-0-1
 ARG MAST_URL=https://github.com/termina-lang/docker-termina/releases/download/toolchains
 ARG MAST_SHA256=9fbea0b9f83db4fb3acfe770832733ed47ac54a96a2ce0818ea81fa3de99f359
 
-ARG CPPCHECK_VERSION=2.21.1
+ARG CPPCHECK_VERSION=2.22.0
+
+ARG DOXYGEN_VERSION=1.18.0
+ARG DOXYGEN_URL=https://www.doxygen.nl/files
+ARG DOXYGEN_SHA256=a1deed70a6785bbec95a2b2a9e419dc7f7b223a9d74a8644ae611c8e2dcdd354
+
+ARG GRAPHVIZ_VERSION=16.1.0
+ARG GRAPHVIZ_URL=https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases
+ARG GRAPHVIZ_SHA256=1ac34dac4dde843ec0069d51c4a5e06f036dbf9a4303f4aaf157e0c8e03e4def
 
 
 # =============================================================================
@@ -153,7 +161,7 @@ RUN set -eux; \
     sh /build/scripts/slim-toolchain.sh /opt/rtems/6 arm-rtems6 \
         thumb/armv7-a+simd/hard; \
     sh /build/scripts/slim-toolchain.sh /opt/rtems/6 riscv-rtems6 \
-        rv32im/ilp32; \
+        rv32im/ilp32 rv32imafd/ilp32d; \
     sh /build/scripts/slim-rtems-src.sh \
         "/opt/rtems/6/src/rtems-${RTEMS_VERSION}" \
         arm:xilinx-zynq riscv:riscv riscv:noel
@@ -191,7 +199,85 @@ RUN set -eux; \
 
 
 # =============================================================================
-# Stage 4: Runtime image (the one users pull)
+# Stage 4: Graphviz, from the packages of its release for this Ubuntu,
+# reduced to dot, its libraries, the plugins that lay out a graph and write
+# it as SVG, the format of the graphs of termina deliver --docs, and the one
+# that measures the text of the labels with the fonts. The packages as they
+# come would bring Qt, GTK and Ghostscript.
+# =============================================================================
+FROM --platform=linux/amd64 ubuntu:${UBUNTU_VERSION} AS graphviz-extract
+
+ARG UBUNTU_VERSION
+ARG GRAPHVIZ_VERSION
+ARG GRAPHVIZ_URL
+ARG GRAPHVIZ_SHA256
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y ca-certificates curl xz-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    name="ubuntu_${UBUNTU_VERSION}_graphviz-${GRAPHVIZ_VERSION}-debs.tar.xz"; \
+    curl -fSL -o /tmp/graphviz.txz "${GRAPHVIZ_URL}/${GRAPHVIZ_VERSION}/${name}"; \
+    echo "${GRAPHVIZ_SHA256}  /tmp/graphviz.txz" | sha256sum -c -; \
+    mkdir /tmp/debs /tmp/x; \
+    tar -xJf /tmp/graphviz.txz -C /tmp/debs; \
+    for deb in graphviz libgraphviz4; do \
+        dpkg-deb -x "/tmp/debs/${deb}_${GRAPHVIZ_VERSION}-1_amd64.deb" /tmp/x; \
+    done; \
+    mkdir -p /out/usr/bin /out/usr/lib/graphviz; \
+    cp -a /tmp/x/usr/bin/dot /out/usr/bin/; \
+    for lib in cdt cgraph gvc pathplan xdot; do \
+        cp -a /tmp/x/usr/lib/lib${lib}.so.* /out/usr/lib/; \
+    done; \
+    for plugin in core dot_layout pango; do \
+        cp -a /tmp/x/usr/lib/graphviz/libgvplugin_${plugin}.so.* /out/usr/lib/graphviz/; \
+    done
+
+
+# =============================================================================
+# Stage 5: Doxygen, built from the sources of its release without libclang,
+# doxywizard and doxysearch (the binary of the release links libclang
+# statically and takes 186 MB)
+# =============================================================================
+FROM --platform=linux/amd64 ubuntu:${UBUNTU_VERSION} AS doxygen-builder
+
+ARG DOXYGEN_VERSION
+ARG DOXYGEN_URL
+ARG DOXYGEN_SHA256
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y \
+        bison \
+        ca-certificates \
+        cmake \
+        curl \
+        flex \
+        g++ \
+        make \
+        python3 \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    curl -fSL -o /tmp/doxygen.tgz "${DOXYGEN_URL}/doxygen-${DOXYGEN_VERSION}.src.tar.gz"; \
+    echo "${DOXYGEN_SHA256}  /tmp/doxygen.tgz" | sha256sum -c -; \
+    mkdir -p /build; \
+    tar -xzf /tmp/doxygen.tgz -C /build; \
+    cmake -S "/build/doxygen-${DOXYGEN_VERSION}" -B /build/doxygen-build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -Dbuild_wizard=OFF \
+        -Dbuild_search=OFF \
+        -Duse_libclang=OFF; \
+    cmake --build /build/doxygen-build -j "$(nproc)"; \
+    install -D -m 0755 -s /build/doxygen-build/bin/doxygen /out/usr/local/bin/doxygen
+
+
+# =============================================================================
+# Stage 6: Runtime image (the one users pull)
 #
 # Layers ordered from least frequently to most frequently changing, so
 # users updating the image only pay for the delta of the top layers.
@@ -241,13 +327,16 @@ RUN set -eux; \
     apt-get update; \
     apt-get install --no-install-recommends -y \
         curl \
+        fonts-dejavu-core \
         gcc \
         gdb \
         gdb-multiarch \
         git \
         less \
-        lcov \
         libc6-dev \
+        libexpat1 \
+        libltdl7 \
+        libpangocairo-1.0-0 \
         make \
         nano \
         openssh-client \
@@ -310,6 +399,14 @@ RUN set -eux; \
     find "/opt/mast-bin-linux-${MAST_VERSION}" -mindepth 1 -maxdepth 1 \
         ! -name mast_analysis ! -name README.txt -exec rm -rf {} +; \
     rm -rf /tmp/scripts
+
+# --- Doxygen and Graphviz (for termina deliver --docs) -----------------------
+#
+# libltdl7, libexpat1, libpangocairo-1.0-0 and fonts-dejavu-core of the base
+# layer are for dot of Graphviz.
+COPY --from=doxygen-builder /out/ /
+COPY --from=graphviz-extract /out/ /
+RUN ldconfig && dot -c
 
 # --- RTEMS 6 for ARM and cppcheck --------------------------------------------
 COPY --from=rtems6-builder /opt/rtems/6 /opt/rtems/6
