@@ -16,6 +16,8 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-27
+
 ### Added
 
 - Doxygen 1.18.0, built from its sources without libclang, and Graphviz
@@ -29,7 +31,7 @@ bundled Termina stack.
   the `noel32imafd` BSP, and the `rv32imafd/ilp32d` multilib of
   `riscv-rtems6` besides `rv32im/ilp32`.
 - cppcheck 2.22.0, formerly 2.21.1.
-- `TERMINA_SERIES` 0.8.
+- The transpiler 0.8.0 and the OSAL 0.8.0 (`TERMINA_SERIES` 0.8).
 
 ### Removed
 
