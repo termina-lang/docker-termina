@@ -56,7 +56,7 @@ ARG MAST_SHA256=9fbea0b9f83db4fb3acfe770832733ed47ac54a96a2ce0818ea81fa3de99f359
 ARG CPPCHECK_VERSION=2.22.0
 
 ARG DOXYGEN_VERSION=1.18.0
-ARG DOXYGEN_URL=https://www.doxygen.nl/files
+ARG DOXYGEN_URL=https://github.com/doxygen/doxygen/releases/download/Release_1_18_0
 ARG DOXYGEN_SHA256=a1deed70a6785bbec95a2b2a9e419dc7f7b223a9d74a8644ae611c8e2dcdd354
 
 ARG GRAPHVIZ_VERSION=16.1.0
