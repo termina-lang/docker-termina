@@ -16,6 +16,15 @@ bundled Termina stack.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-27
+
+### Changed
+
+- The image bundles `termina-osal` 0.8.1, which builds the release profile
+  without `-fanalyzer`. The transpiler stays at 0.8.0.
+- Each release is also published with its version without the `v` prefix,
+  such as `0.8.1`, besides `v0.8.1`, `0.8` and `latest`.
+
 ## [0.8.0] - 2026-11-27
 
 ### Added
